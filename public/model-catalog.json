@@ -1,0 +1,64 @@
+{
+  "auto": {
+    "illustration": "official",
+    "photoreal": "official",
+    "none": "official"
+  },
+  "models": {
+    "official": {
+      "label": "Qwen 2.1 公式",
+      "file": "qwen_image_2.1_int8_convrot.safetensors",
+      "settings": {
+        "steps": 25,
+        "cfg": 1,
+        "sampler": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      },
+      "negative": ""
+    },
+    "noct_anime": {
+      "label": "NoctQ Anime · FP16",
+      "file": "noctQAnimeUncensoredAnimeMix_v10_fp16.safetensors",
+      "settings": {
+        "steps": 25,
+        "cfg": 3,
+        "sampler": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      },
+      "negative": "low quality, low resolution, blurry, jpeg artifacts, washed-out colors, sloppy lines, messy line art, extra fingers, missing fingers, badly drawn hands, deformed anatomy, 3d render, photograph, photorealistic",
+      "prefix": "An anime illustration of the following scene or edit. ",
+      "source": "https://civitai.com/models/2967534?modelVersionId=3362444",
+      "settings_source": "Author description and published example metadata. Workflow download requires authentication and was not read."
+    },
+    "turbo8": {
+      "label": "Qwen Turbo8 · INT8",
+      "file": "qwenImage21Turbo8_v10.safetensors",
+      "settings": {
+        "steps": 8,
+        "cfg": 1,
+        "sampler": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      },
+      "negative": "",
+      "source": "https://civitai.com/models/2967502?modelVersionId=3362402",
+      "settings_source": "Author describes 8 steps and merged Viggle r128/r64 adapters. Euler/CFG1 from published examples; simple scheduler tested locally."
+    },
+    "noct_realism": {
+      "label": "NoctQ Realism V3 · FP16",
+      "file": "noctQUncensoredRealismBuiltOn_v30Base_fp16.safetensors",
+      "settings": {
+        "steps": 25,
+        "cfg": 3,
+        "sampler": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      },
+      "negative": "",
+      "source": "https://civitai.com/models/2958896?modelVersionId=3356931",
+      "settings_source": "Author V3 Base description: 25-50 steps, CFG3, Euler, simple. Attached workflow requires authentication (401); exact negative prompt unavailable, so empty and user-editable. Locally validated settings, not an exact reproduction of author workflow."
+    }
+  }
+}

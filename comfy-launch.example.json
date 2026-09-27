@@ -1,0 +1,7 @@
+{
+  "directory": "C:/YOUR_COMFYUI_FOLDER",
+  "python": ".venv/Scripts/python.exe",
+  "arguments": ["main.py", "--listen", "127.0.0.1", "--port", "8188"],
+  "url": "http://127.0.0.1:8188",
+  "timeout_seconds": 180
+}

@@ -1,0 +1,4 @@
+{
+  "extends": "qwen21_edit", "id": "qwen21_outpaint", "label": "Qwen 2.1 · キャンバス拡張", "version": 1,
+  "intents": ["outpaint"]
+}

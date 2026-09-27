@@ -1,0 +1,42 @@
+ImageChat Local Evaluation and Modification License v1.0
+
+Copyright (c) 2026 ImageChat Local contributors. All rights reserved.
+
+1. Scope
+This license applies only to the original application code and documentation
+for which the project copyright holders may grant permission. Third-party
+materials, models, prompts, and dependencies retain their own licenses.
+See THIRD_PARTY_NOTICES.md and licenses/.
+
+2. Limited permission
+You may download, keep local copies of, run, study, and modify the covered
+materials for your own non-commercial testing and evaluation. You may submit
+feedback and proposed modifications to the original project for review.
+No fee is charged for these permissions.
+
+3. Rights not granted
+No permission is granted to redistribute the original or modified materials
+outside the original project, sell them, sublicense them, or use them for a
+commercial product or service. Obtain separate permission from the relevant
+copyright holders for uses not expressly permitted here.
+Keep this license and attribution notices in permitted copies.
+
+4. GitHub operation
+Nothing in this license withdraws rights separately granted under GitHub's
+Terms of Service for content hosted there, including viewing and forking
+through GitHub's functionality. Such platform permissions do not grant a
+general right to redistribute or commercially use the covered materials.
+
+5. Contributions
+When you deliberately submit your own changes to this project, you permit
+the project maintainers to review, modify, and distribute those submitted
+changes as part of this project under this license. Do not submit material
+for which you cannot grant that permission.
+
+6. No warranty
+THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. TO THE
+EXTENT PERMITTED BY APPLICABLE LAW, THE COPYRIGHT HOLDERS ARE NOT LIABLE
+FOR DAMAGES ARISING FROM THEIR USE. SUPPORT, FIXES, AND UPDATE SCHEDULES
+ARE NOT GUARANTEED. Mandatory rights under applicable law are unaffected.
+
+This is a restricted evaluation license, not an open-source license.

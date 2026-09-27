@@ -1,0 +1,13 @@
+data/
+backups/
+models/
+imports/
+.venv/
+__pycache__/
+*.pyc
+*.log
+*.sqlite*
+*.safetensors
+*.gguf
+.env*
+!*.example

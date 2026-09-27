@@ -1,0 +1,6 @@
+{
+  "extends": "qwen21_t2i", "id": "qwen21_edit", "label": "Qwen 2.1 · 画像編集", "version": 1,
+  "intents": ["edit", "sketch"], "capabilities": ["references", "sketch", "expand"], "max_references": 10,
+  "reference_binding": {"node": "4", "prefix": "images.image_", "loader_type": "LoadImage", "loader_input": "image"},
+  "overrides": {"6": {"latent_image": ["4", 2]}}
+}

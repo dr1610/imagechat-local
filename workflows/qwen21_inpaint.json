@@ -1,0 +1,24 @@
+{
+  "extends": "qwen21_edit", "id": "qwen21_inpaint", "label": "Qwen 2.1 · 部分修正 / ポーズ", "version": 1,
+  "intents": ["inpaint", "pose"], "capabilities": ["references", "sketch", "expand", "mask", "pose"],
+  "features": {
+    "control": {
+      "graph": {
+        "20": {"class_type": "ModelPatchLoader", "inputs": {"name": "$control_model"}},
+        "21": {"class_type": "QwenImage21FunControlNetApply", "inputs": {"model": ["1", 0], "model_patch": ["20", 0], "vae": ["3", 0], "strength": "$control_strength", "start_percent": 0.0, "end_percent": 1.0}}
+      },
+      "overrides": {"6": {"model": ["21", 0]}}
+    },
+    "mask": {
+      "graph": {
+        "22": {"class_type": "LoadImage", "inputs": {"image": "$base_upload"}},
+        "23": {"class_type": "LoadImageMask", "inputs": {"image": "$mask_upload", "channel": "red"}}
+      },
+      "overrides": {"21": {"inpaint_image": ["22", 0], "mask": ["23", 0]}}
+    },
+    "pose": {
+      "graph": {"24": {"class_type": "LoadImage", "inputs": {"image": "$pose_upload"}}},
+      "overrides": {"21": {"control_image": ["24", 0]}}
+    }
+  }
+}

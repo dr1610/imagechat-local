@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja" data-theme="dark">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ImageChat Local</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<aside class="sidebar">
+ <a class="brand" href="/" aria-label="ImageChat Local ホーム"><span class="brand-mark">Q</span><span>Qwen <b>Image Chat</b><small>LOCAL CREATIVE SPACE</small></span></a>
+ <button id="newChat" class="primary new-chat"><span>＋</span> 新しいチャット</button>
+ <button id="newProject" class="secondary">＋ 新しいプロジェクト</button>
+ <input id="historySearch" type="search" placeholder="チャット名を検索" aria-label="チャット名を検索">
+ <nav id="sessionList" aria-label="チャット一覧"></nav>
+ <div class="sidebar-bottom"><div class="local-note"><span class="status-dot"></span> あなたのPCで、あなたの画像を。</div><button id="settingsButton" class="ghost">⚙ <span>設定・接続</span></button></div>
+</aside>
+<main>
+ <header class="topbar"><div><span class="eyebrow">YOUR WORKSPACE</span><button id="renameChat" class="title-button" title="チャットの名前を変更"><span id="chatTitle">新しいチャット</span><span class="muted">⌄</span></button></div><div class="header-actions"><button id="themeToggle" class="icon-button" aria-label="ライト・ダーク切替">◐</button><button id="connectionBadge" class="connection-badge"><span class="status-dot"></span><span>接続を確認</span></button></div></header>
+ <section id="chatView" class="chat-view">
+  <div id="messages" class="messages" aria-label="会話と生成画像" aria-live="polite"></div>
+  <div id="dropOverlay" hidden>画像をドロップして添付</div>
+  <div class="composer-shell">
+   <div id="activeJobs" class="active-jobs" aria-live="polite"></div>
+   <div class="composer">
+    <div id="references" class="references"></div>
+    <div id="editorChip" class="editor-chip" hidden></div>
+    <textarea id="prompt" rows="2" placeholder="どんな画像をつくりますか？ 日本語で自由にどうぞ。" aria-label="画像生成の指示"></textarea>
+    <div class="composer-actions"><div><button id="attach" class="icon-button" aria-label="画像を添付" title="画像を添付">＋</button><button id="newImage" class="text-button" title="編集対象を解除して新規生成">新しい画像をつくる</button></div><span class="composer-hint">Ctrl + Enter で送信</span><button id="send" class="send-button" aria-label="画像を生成">↑</button></div>
+   </div>
+   <div class="quick-settings"><label title="このチャットの次の生成・編集から適用。再生成は元画像の設定を使います。">画風 <select id="artStyle"><option value="none">指定なし</option><option value="illustration">イラスト</option><option value="photoreal">フォトリアル</option></select></label><label>モデル <select id="modelPreset"><option value="auto">自動 · 画風に合わせる</option><option value="official">Qwen 2.1 公式</option><option value="noct_anime">NoctQ Anime</option><option value="turbo8">Qwen Turbo8</option><option value="settings">接続設定のモデル</option></select></label><label>比率 <select id="aspect"><option value="original">元画像に合わせる</option><option value="1:1">1:1</option><option value="4:3">4:3</option><option value="3:4">3:4</option><option value="16:9">16:9</option><option value="9:16">9:16</option></select></label><label>解像度 <select id="resolution"><option value="512">軽量 · 512</option><option value="768">標準 · 768</option><option value="1024">高精細 · 1024</option><option value="1536">1536</option><option value="2048">2048</option></select></label><label>Seed <select id="seedMode"><option value="random">ランダム</option><option value="fixed">固定</option></select></label><button id="advancedToggle" class="text-button" aria-expanded="false">詳細設定 <span>⌄</span></button></div>
+   <p id="modelNotice" class="footer-note" aria-live="polite"></p>
+    <div id="advanced" class="advanced" hidden>
+    <label>生成設定<select id="samplingPolicy"><option value="recommended">モデル推奨値</option><option value="manual">手動調整</option></select><small>Steps等を変更すると手動に切り替わります</small></label><label>Negative Prompt<textarea id="negativePrompt" rows="2" placeholder="避けたい表現"></textarea></label><label>Seed<input id="seed" type="number" min="0" max="9007199254740991" step="1"></label><label>Steps<input id="steps" type="number" min="1" max="100"></label><label>CFG<input id="cfg" type="number" min="0" max="30" step="0.1"></label><label>Sampler<select id="sampler"><option>euler</option></select></label><label>Scheduler<select id="scheduler"><option>simple</option></select></label><label>Denoise<input id="denoise" type="number" min="0.01" max="1" step="0.01"></label><label>Mask Blur<input id="maskBlur" type="number" min="0" max="64"></label><label>Mask Grow<input id="maskGrow" type="number" min="0" max="64"></label><label>Pose / CN 強度<input id="controlStrength" type="number" min="0" max="2" step="0.05"></label><label>Workflow<select id="workflow"><option value="auto">入力から自動選択</option></select></label><label>指示の整理<select id="enhancer"><option value="auto">自動 · 難しい編集で使用</option><option value="off">OFF · 原文を使用</option><option value="local">ON · Qwen公式・ローカル</option></select><small>自動：イラストの参照ポーズ・キャラ置換・上下アングル。数分かかる場合があります。</small></label><label>生成方式<select id="qualityProfile"><option value="standard">標準</option></select><small>高速時は専用スケジュール・CFG1・Eulerを使用</small></label><label>画像拡張<select id="outpaintMode"><option value="standard">標準</option></select><small>Canvas拡張時のみ。Sketch・Mask・Pose併用は標準へ</small></label>
+   </div>
+   <p class="footer-note">画像と会話はこのPCに保存されます。外部AIへの送信はありません。</p>
+  </div>
+ </section>
+ <section id="editorView" class="editor-view" hidden>
+  <div class="editor-heading"><div><span class="eyebrow">MAKE IT YOURS</span><h2>Canvas Editor <small id="editorSource"></small></h2></div><button id="backToChat" class="secondary">← チャットへ戻る</button></div>
+  <div class="editor-layout">
+   <div class="tool-panel" role="toolbar" aria-label="描画ツール">
+    <button data-tool="pen" class="tool selected" title="P"><span>✎</span>ペン</button><button data-tool="eraser" class="tool" title="E"><span>▱</span>消しゴム</button><button data-tool="mask" class="tool" title="M"><span>◩</span>マスク</button><button data-tool="pose" class="tool" title="V"><span>♧</span>ポーズ</button><button data-tool="pan" class="tool" title="Space / H"><span>✥</span>移動</button>
+    <hr><button id="undo" class="tool">↶ 元に戻す</button><button id="redo" class="tool">↷ やり直す</button><hr>
+    <label>ブラシサイズ <output id="brushValue">12</output><input id="brushSize" type="range" min="2" max="128" value="12"></label><label>ペンの色<input id="penColor" type="color" value="#18caca"></label><label>消すレイヤー<select id="eraseLayer"><option value="sketch">スケッチ</option><option value="mask">マスク</option></select></label>
+   </div>
+   <div class="canvas-column"><div class="canvas-tabs"><button data-mode="draw" class="selected">描く</button><button data-mode="mask">塗って指定</button><button data-mode="pose">人形を動かす</button><button data-mode="expand">広げる</button></div><div id="canvasViewport" class="canvas-viewport"><canvas id="canvas" tabindex="0" aria-label="画像編集キャンバス。ポーズの関節はドラッグ、Spaceとドラッグで移動、ホイールで拡大縮小。"></canvas></div><div class="canvas-footer"><span id="canvasDimensions"></span><div><button id="zoomOut" aria-label="縮小">−</button><span id="zoomLabel">100%</span><button id="zoomIn" aria-label="拡大">＋</button><button id="fitCanvas">全体表示</button></div></div><p id="toolHelp" class="tool-help">画像の上に描いて、日本語で指示できます。</p></div>
+   <div class="inspector">
+    <h3>レイヤー</h3><label class="layer"><input type="checkbox" data-layer="sketch" checked><span class="layer-icon sketch-icon">✎</span>スケッチ</label><label class="layer"><input type="checkbox" data-layer="mask" checked><span class="layer-icon mask-icon">◩</span>マスク</label><label class="layer"><input type="checkbox" data-layer="pose" checked><span class="layer-icon pose-icon">♧</span>ポーズ</label><div class="layer"><span class="muted">▣</span> 元画像 <small>保持</small></div>
+    <p class="micro">チェックは表示切替です。非表示でも生成入力に含まれます。</p>
+    <section id="poseControls"><h3>ポーズ人形</h3><label>操作モード<select id="poseMode"><option value="joint">関節・範囲選択</option><option value="whole">人形全体</option></select></label><p id="poseSelection" class="micro" aria-live="polite">人形を選択してください</p><button id="addPose" class="secondary wide">＋ 人形を追加</button><label>人形<select id="poseSelect"><option value="-1">人形なし</option></select></label><div class="button-grid"><button id="duplicatePose">複製</button><button id="flipPose">左右反転</button><button id="smallerPose">縮小</button><button id="largerPose">拡大</button><button id="rotatePose">回転</button><button id="removePose">選択を非表示</button><button id="flipVerticalPose">上下反転</button><button id="tiltPose">傾き（せん断）</button><button id="restoreJoints">全関節を復帰</button><button id="deletePerson">人形を削除</button></div><p class="micro">空白をドラッグで範囲選択。Shiftで追加／点の選択解除。選択枠の角で拡縮、上の丸で回転。右クリックで関節を非表示／復帰。灰色の輪は編集用で生成には含まれません。Deleteも選択関節を非表示。Undoで戻せます。</p></section>
+    <label>元画像の表示濃度<input id="baseOpacity" type="range" min="0" max="100" value="100"></label><p class="micro">表示だけの調整です。生成には元画像を使用します。</p><h3>キャンバス</h3><label>比率<select id="canvasAspect"><option value="original">Original</option><option>1:1</option><option>4:3</option><option>3:4</option><option>16:9</option><option>9:16</option><option value="custom">Custom</option></select></label><div class="dimension-inputs"><label>幅<input id="canvasWidth" type="number" min="32" max="4096" step="32"></label><label>高さ<input id="canvasHeight" type="number" min="32" max="4096" step="32"></label></div><label>元画像の配置<select id="canvasAlign"><option value="center">中央</option><option value="top">上</option><option value="bottom">下</option><option value="left">左</option><option value="right">右</option></select></label><button id="applyCanvas" class="secondary wide">サイズを適用</button><p class="micro">元画像は引き伸ばしません。</p><button id="resetCanvas" class="text-button">編集をリセット</button>
+   </div>
+  </div>
+  <div class="editor-composer"><label>画風<select id="editorArtStyle"><option value="none">指定なし</option><option value="illustration">イラスト</option><option value="photoreal">フォトリアル</option></select></label><textarea id="editorPrompt" rows="2" placeholder="描いた位置やポーズを、どう画像にしますか？" aria-label="Canvas編集の指示"></textarea><button id="editorGenerate" class="primary">この内容で生成 <span>↗</span></button></div>
+ </section>
+</main>
+<input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/bmp" multiple hidden>
+<dialog id="settingsDialog"><form method="dialog" class="dialog-header"><div><span class="eyebrow">PREFERENCES</span><h2>設定・接続</h2></div><button aria-label="閉じる" class="icon-button">×</button></form><div class="dialog-body"><label>外観<select id="themeSetting"><option value="dark">ダーク</option><option value="light">ライト</option><option value="system">システムに合わせる</option></select></label><label>ComfyUI接続先<input id="comfyUrl" placeholder="http://127.0.0.1:8188"></label><button id="testConnection" class="secondary">接続をテスト・モデルを検出</button><p id="connectionResult" class="micro"></p><details><summary>検出したモデル・接続情報</summary><div class="model-settings"><label>画像モデル<select id="modelSetting"></select></label><label>テキストエンコーダー<select id="encoderSetting"></select></label><label>VAE<select id="vaeSetting"></select></label><label>ControlNet<select id="controlSetting"></select></label></div></details><p class="micro">既存ComfyUIを使用します。モデルの移動や環境の更新は行いません。接続先はローカルに限定されます。</p><button id="saveSettings" class="primary wide">設定を保存</button><hr><button id="shutdown" class="text-button">アプリを完全終了</button><p class="micro">生成中の処理はComfyUI側で継続し、次回起動時に結果を確認します。</p></div></dialog>
+<dialog id="imageDialog" class="image-dialog"><form method="dialog"><button class="close-image" aria-label="拡大画像を閉じる">×</button></form><img id="largeImage" alt="生成画像の拡大"></dialog>
+<dialog id="infoDialog"><form method="dialog" class="dialog-header"><h2 id="infoTitle">生成情報</h2><button class="icon-button" aria-label="閉じる">×</button></form><pre id="infoContent"></pre></dialog>
+<dialog id="renameDialog"><form id="renameForm"><h2>チャットの名前</h2><input id="renameInput" maxlength="100" required><div class="dialog-buttons"><button type="button" id="cancelRename">キャンセル</button><button class="primary">保存</button></div></form></dialog>
+<div id="toast" role="status" hidden></div>
+<script type="module" src="/app.js"></script>
+</body></html>

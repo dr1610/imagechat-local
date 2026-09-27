@@ -1,0 +1,4 @@
+{
+  "extends": "qwen21_edit", "id": "qwen21_multi_reference", "label": "Qwen 2.1 · 複数画像", "version": 1,
+  "intents": ["multi_reference"]
+}
