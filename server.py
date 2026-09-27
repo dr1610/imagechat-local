@@ -1,5 +1,6 @@
 """Loopback-only desktop web application; no CDN, telemetry, or external AI calls."""
 import argparse
+import hashlib
 import json
 import mimetypes
 import os
@@ -14,10 +15,12 @@ from comfy import Comfy
 from edit_policy import plan as edit_plan
 from model_routing import resolve as resolve_model
 from image_library import ImageLibrary
+from updater import Updater, VERSION
 
 
 def serve(port=8791, data_root=None):
     token=secrets.token_urlsafe(32)
+    installation_id=hashlib.sha256(str(ROOT.resolve()).lower().encode()).hexdigest()
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self,format,*args): pass
@@ -34,7 +37,11 @@ def serve(port=8791, data_root=None):
             except (BrokenPipeError,ConnectionResetError):pass
 
         def do_GET(self): self.handle_request(False)
-        def do_POST(self): self.handle_request(True)
+        def do_POST(self):
+            with updater.lock:
+                if updater.frozen:
+                    self.send(409,dict(error=dict(message='更新中です。再起動後に操作してください。')));return
+                self.handle_request(True)
 
         def handle_request(self,mutation):
             try:
@@ -52,7 +59,8 @@ def serve(port=8791, data_root=None):
                     if path=='/api/assets':
                         self.send(200,app.store.add_image(raw,urllib.parse.unquote(self.headers.get('X-Filename','image.png'))));return
                     body=json.loads(raw)
-                    if path=='/api/sessions': result=app.store.create_session(body.get('title','新しいチャット'))
+                    if path=='/api/updates': result=updater.action(body)
+                    elif path=='/api/sessions': result=app.store.create_session(body.get('title','新しいチャット'))
                     elif path.startswith('/api/sessions/'):
                         sid=path.rsplit('/',1)[1];app.store.update_session(sid,body);result={'ok':True}
                     elif path=='/api/library/favorite':result=library.favorite(body)
@@ -76,8 +84,9 @@ def serve(port=8791, data_root=None):
                         result={'ok':True};app.stopping.set();threading.Thread(target=server.shutdown,daemon=True).start()
                     else:self.send(404,{'error':{'message':'Not found'}});return
                     self.send(200,result);return
+                if path=='/api/updates':self.send(200,updater.status());return
                 if path=='/api/bootstrap':
-                    self.send(200,dict(token=token,settings=app.config,defaults=PARAMS,workflows=app.workflows.list(),sessions=app.store.sessions(),version='1.0.0-preview'));return
+                    self.send(200,dict(token=token,settings=app.config,defaults=PARAMS,workflows=app.workflows.list(),sessions=app.store.sessions(),version=VERSION));return
                 if path=='/api/library':self.send(200,library.list());return
                 if path=='/api/organization':self.send(200,app.store.organization());return
                 if path=='/api/sessions':self.send(200,app.store.sessions());return
@@ -89,7 +98,7 @@ def serve(port=8791, data_root=None):
                 if path.startswith('/api/assets/'):
                     aid=path.rsplit('/',1)[1];a=app.store.asset(aid)
                     self.send(200,app.store.asset_path(aid).read_bytes(),'image/png',a['name'] if 'download' in query else None);return
-                if path=='/api/health':self.send(200,{'ok':True,'application':'ImageChat Local'});return
+                if path=='/api/health':self.send(200,{'ok':True,'application':'ImageChat Local','installation_id':installation_id,'version':VERSION});return
                 if path=='/api/comfy-status':
                     try:
                         Comfy(app.config['comfy_url']).request('/system_stats',timeout=3)
@@ -113,7 +122,11 @@ def serve(port=8791, data_root=None):
     except BaseException:
         lock.close();server.server_close();raise
     library=ImageLibrary(app.store)
+    def update_shutdown():
+        app.stopping.set();threading.Thread(target=server.shutdown,daemon=True).start()
+    updater=Updater(app,ROOT,port,update_shutdown)
     app.recover()
+    if updater.automatic:updater.action({'action':'check'})
     print(f'ImageChat Local: http://127.0.0.1:{port}',flush=True)
     try:server.serve_forever()
     except KeyboardInterrupt:pass

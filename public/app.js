@@ -1,3 +1,4 @@
+import {setupUpdates} from './updates.js';
 import {createLibrary} from './library.js';
 import {progressMarkup} from './progress-ui.js';
 import {nextEditReferences} from './reference-state.js';
@@ -149,4 +150,4 @@ const libraryUI=createLibrary({api,safe,toast,esc,assetUrl,openChat:switchSessio
  editImage:async(aid,sid,gid)=>{await switchSession(sid);await selectImage(aid,gid);},
  addReference:async aid=>{if(!state.session)await newSession();if(state.draft.references.length>=10)throw Error('参照画像は10枚までです。');organizer.showChat();state.draft.references.push(aid);renderRefs();await persist(true);toast('今のチャットに参照画像を追加しました。');}});
 $('openLibrary').onclick=safe(async()=>{if(!$('editorView').hidden)closeEditor();await persist(true);await libraryUI.open();});
-init().catch(e=>{toast(e.message);showInfo('起動エラー',e.detail||e.message);});
+init().then(()=>setupUpdates({api,persist})).catch(e=>{toast(e.message);showInfo('起動エラー',e.detail||e.message);});
