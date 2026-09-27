@@ -20,3 +20,31 @@ select{color-scheme:dark;background-color:var(--field);color:var(--text)}select 
 .community-presets{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}.community-presets select{max-width:100%;min-width:190px}.community-presets button{font-size:12px}.advanced small{font-size:10px;color:var(--muted);line-height:1.4}
 
 .progress-summary{display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-top:9px;color:var(--muted)}.progress-summary strong{color:var(--accent);font-size:15px;font-variant-numeric:tabular-nums}.progress-track{height:8px;margin:7px 0;border-radius:6px}.progress-note{display:block;color:var(--muted);font-size:10px}.rewrite-progress{margin:6px 0}.progress-track.indeterminate span{animation:progress-sweep 1.5s ease-in-out infinite}@keyframes progress-sweep{0%{transform:translateX(-100%)}100%{transform:translateX(400%)}}@media(prefers-reduced-motion:reduce){.progress-track.indeterminate span{animation:none}}
+
+/* Compact, wide composer: leave room for the generated image. */
+.composer-shell{width:min(100%,1480px);padding:0 24px 8px;max-height:52dvh;overflow-y:auto}
+.composer{padding:8px 10px 6px}
+#prompt{min-height:48px;height:54px;max-height:120px;padding:6px;resize:vertical}
+.composer-shell .references{padding:0;gap:6px}
+.composer-shell .reference-chip{padding:3px 5px}
+.composer-shell .reference-chip img{width:32px;height:28px}
+.composer-shell .image-tag-bar{padding:5px 0;gap:5px;max-height:78px}
+.composer-shell .image-tag-button{padding:3px 6px;font-size:11px}
+.composer-shell .image-tag-button img{width:20px;height:20px}
+.composer-shell .image-tag-hint{flex-basis:auto;font-size:10px}
+.composer-shell .image-tag-label{font-size:11px}
+.composer-shell .rewrite-panel{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:3px 0}
+.composer-shell .rewrite-actions{gap:7px}
+.composer-shell .rewrite-actions button{padding:4px 9px;font-size:11px}
+.composer-shell .rewrite-panel details{margin:0;min-width:0}
+.composer-shell .rewrite-panel details[open]{flex-basis:100%}
+.composer-shell .rewrite-panel textarea{min-height:72px;height:85px;max-height:140px;resize:vertical}
+.composer-shell .rewrite-progress{flex-basis:100%;margin:0}
+.composer-shell .quick-settings{gap:5px 14px;padding:6px 2px 2px}
+.composer-shell .quick-settings select{min-height:28px;padding:2px 5px}
+.composer-shell .advanced{max-height:160px;padding:8px 3px;gap:8px 12px}
+.composer-shell .footer-note{padding-top:1px}
+.composer-shell .composer-actions{margin-top:3px}
+.composer-shell .send-button{width:36px;height:34px;font-size:22px}
+@media(min-width:1200px){.messages{padding-left:max(28px,calc((100% - 1360px)/2));padding-right:max(28px,calc((100% - 1360px)/2))}.generation{max-width:1360px}}
+@media(max-width:700px){.composer-shell{padding:0 10px 6px;max-height:55dvh}.composer-shell .quick-settings{gap:3px 8px}.composer-shell .image-tag-hint{flex-basis:100%}.composer-shell .rewrite-panel{gap:4px}.composer-shell .advanced{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -13,6 +13,7 @@ from core import Application, AppError, ROOT, PARAMS
 from comfy import Comfy
 from edit_policy import plan as edit_plan
 from model_routing import resolve as resolve_model
+from image_library import ImageLibrary
 
 
 def serve(port=8791, data_root=None):
@@ -54,6 +55,7 @@ def serve(port=8791, data_root=None):
                     if path=='/api/sessions': result=app.store.create_session(body.get('title','新しいチャット'))
                     elif path.startswith('/api/sessions/'):
                         sid=path.rsplit('/',1)[1];app.store.update_session(sid,body);result={'ok':True}
+                    elif path=='/api/library/favorite':result=library.favorite(body)
                     elif path=='/api/organization':result=app.store.organize(body)
                     elif path=='/api/generate':result=app.generate(body)
                     elif path=='/api/generation-plan':
@@ -76,6 +78,7 @@ def serve(port=8791, data_root=None):
                     self.send(200,result);return
                 if path=='/api/bootstrap':
                     self.send(200,dict(token=token,settings=app.config,defaults=PARAMS,workflows=app.workflows.list(),sessions=app.store.sessions(),version='1.0.0-preview'));return
+                if path=='/api/library':self.send(200,library.list());return
                 if path=='/api/organization':self.send(200,app.store.organization());return
                 if path=='/api/sessions':self.send(200,app.store.sessions());return
                 if path.startswith('/api/rewrites/'):self.send(200,app.rewriter.get(path.rsplit('/',1)[1]));return
@@ -109,6 +112,7 @@ def serve(port=8791, data_root=None):
     try:app=Application(data_root)
     except BaseException:
         lock.close();server.server_close();raise
+    library=ImageLibrary(app.store)
     app.recover()
     print(f'ImageChat Local: http://127.0.0.1:{port}',flush=True)
     try:server.serve_forever()
