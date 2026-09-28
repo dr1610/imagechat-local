@@ -17,6 +17,11 @@ from model_routing import resolve as resolve_model
 from image_library import ImageLibrary
 from updater import Updater, VERSION
 
+# Windows registry associations can label modules as text/plain. Browsers reject
+# those responses as ES modules, preventing the entire UI from initializing.
+mimetypes.add_type('text/javascript', '.mjs')
+mimetypes.add_type('text/javascript', '.js')
+
 
 def serve(port=8791, data_root=None):
     token=secrets.token_urlsafe(32)
