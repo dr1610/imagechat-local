@@ -1,3 +1,11 @@
+# v0.1.3-beta — Windows環境での画面操作不具合を修正
+
+- WindowsのMIME設定によりpose-geometry.mjsがtext/plainで配信され、設定・接続などを操作できなくなる不具合を修正。
+- .mjsと.jsを明示的にtext/javascriptとして配信。
+- 誤ったOS側の関連付けを再現した実HTTPテストで検証。
+
+画面を操作できない旧版では通常ZIPを別フォルダに展開し、UPDATING.mdの手動移行手順を利用してください。
+
 # v0.1.2-beta — 更新通知と安全な更新
 
 - 設定画面でGitHubリリースの確認、更新内容の表示、更新・再起動。

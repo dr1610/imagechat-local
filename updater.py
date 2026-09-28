@@ -12,7 +12,7 @@ import zipfile
 from pathlib import Path
 
 REPO = 'dr1610/imagechat-local'
-VERSION = '0.1.2-beta'
+VERSION = '0.1.3-beta'
 LIMIT = 20 * 1024 * 1024
 
 def digest(path):
