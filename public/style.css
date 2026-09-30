@@ -46,5 +46,6 @@ select{color-scheme:dark;background-color:var(--field);color:var(--text)}select 
 .composer-shell .footer-note{padding-top:1px}
 .composer-shell .composer-actions{margin-top:3px}
 .composer-shell .send-button{width:36px;height:34px;font-size:22px}
+#moveControls button{margin:4px 0;font-size:11px}
 @media(min-width:1200px){.messages{padding-left:max(28px,calc((100% - 1360px)/2));padding-right:max(28px,calc((100% - 1360px)/2))}.generation{max-width:1360px}}
 @media(max-width:700px){.composer-shell{padding:0 10px 6px;max-height:55dvh}.composer-shell .quick-settings{gap:3px 8px}.composer-shell .image-tag-hint{flex-basis:100%}.composer-shell .rewrite-panel{gap:4px}.composer-shell .advanced{grid-template-columns:repeat(2,minmax(0,1fr))}}

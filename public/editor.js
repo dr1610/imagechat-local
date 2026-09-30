@@ -10,7 +10,7 @@ export class CanvasEditor {
  constructor(onChange,notify){
   this.onChange=onChange;this.notify=notify;this.canvas=$('canvas');this.ctx=this.canvas.getContext('2d');this.tool='pen';this.zoom=1;this.pan={x:0,y:0};this.visible={sketch:true,mask:true,pose:true};this.selectedPose=-1;this.undoStack=[];this.redoStack=[];this.space=false;this.poseMode='joint';this.hover=null;this.selectedJoint=-1;this.selection=[];
   document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>this.setTool(b.dataset.tool));
-  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('selected',x===b));if(b.dataset.mode==='expand')$('canvasAspect').focus();else this.setTool({draw:'pen',mask:'mask',pose:'pose'}[b.dataset.mode]);});
+  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('selected',x===b));if(b.dataset.mode==='expand')$('canvasAspect').focus();else this.setTool({draw:'pen',mask:'mask',pose:'pose',move:'move'}[b.dataset.mode]);});
   document.querySelectorAll('[data-layer]').forEach(b=>b.onchange=()=>{this.visible[b.dataset.layer]=b.checked;this.draw();});
   $('brushSize').oninput=()=>$('brushValue').textContent=$('brushSize').value;
   $('undo').onclick=()=>this.undo();$('redo').onclick=()=>this.redo();$('fitCanvas').onclick=()=>this.fit();$('zoomIn').onclick=()=>this.scale(1.2);$('zoomOut').onclick=()=>this.scale(1/1.2);
@@ -20,6 +20,12 @@ export class CanvasEditor {
   $('restoreJoints').onclick=()=>{this.checkpoint();this.state.poses.forEach(p=>p.hidden=[]);this.changed();};$('deletePerson').onclick=()=>this.poseAction('deletePerson');$('tiltPose').onclick=()=>this.poseAction('tilt');$('flipVerticalPose').onclick=()=>this.poseAction('flipVertical');
   $('canvasAspect').onchange=()=>this.proposeSize();$('applyCanvas').onclick=()=>this.expand();
   $('resetCanvas').onclick=()=>{if(!this.state)return;this.checkpoint();this.state={width:this.image.width,height:this.image.height,x:0,y:0,strokes:[],poses:[]};this.changed();this.fit();};
+  $('moveWithin').onclick=()=>{this.checkpoint();this.state.move={source_image:1};this.moveView='base';this.moveStep='source';this.setTool('move');this.changed();this.notify('画像1で動かす被写体を赤枠に囲んでください。');};
+  $('moveFromReference').onclick=()=>{if(!this.moveReferenceImage)return;this.checkpoint();this.state.move={source_image:2};this.moveView='reference';this.moveStep='source';this.setTool('move');this.changed();this.notify('画像2で移す被写体を赤枠に囲んでください。');};
+  $('moveSource').onclick=()=>{this.moveStep='source';this.moveView=this.state.move?.source_image===2?'reference':'base';this.setTool('move');this.sync();this.draw();this.notify(this.moveView==='reference'?'画像2で移す対象を赤枠に囲んでください。':'画像1で動かす対象を赤枠に囲んでください。');};
+  $('moveTarget').onclick=()=>{this.moveStep='target';this.moveView='base';this.setTool('move');this.sync();this.draw();this.notify('画像1で移動先を緑枠に囲んでください。');};
+  $('moveScene').onclick=()=>{this.moveView='base';this.moveStep='target';this.setTool('move');this.sync();this.draw();};
+  $('moveClear').onclick=()=>{this.checkpoint();delete this.state.move;this.moveView='base';this.moveStep='source';this.changed();};
   this.canvas.addEventListener('pointerdown',e=>this.down(e));this.canvas.addEventListener('pointermove',e=>this.move(e));this.canvas.addEventListener('pointerup',e=>this.up(e));this.canvas.addEventListener('pointercancel',e=>this.cancelDrag(e));this.canvas.addEventListener('pointerleave',()=>{if(!this.drag){this.hover=null;this.draw();}});
   this.canvas.addEventListener('wheel',e=>{e.preventDefault();this.scale(Math.exp(-e.deltaY*.001),e.offsetX,e.offsetY);},{passive:false});
   this.canvas.addEventListener('contextmenu',e=>{e.preventDefault();if(this.tool!=='pose'||!this.visible.pose||this.drag)return;const p=this.point(e),hit=this.jointHit(p,true);if(hit){this.checkpoint();const person=this.state.poses[hit.i];person.hidden||=[];if(person.hidden.includes(hit.j))person.hidden=person.hidden.filter(j=>j!==hit.j);else person.hidden.push(hit.j);this.selection=this.selection.filter(r=>r.i!==hit.i||r.j!==hit.j);this.changed();}});
@@ -45,11 +51,20 @@ export class CanvasEditor {
  async open(asset,state){
   this.asset=asset;this.image=new Image();this.image.src='/api/assets/'+asset.id;await this.image.decode();
   this.state=state?clone(state):{width:this.image.width,height:this.image.height,x:0,y:0,strokes:[],poses:[]};this.state.poses ||= [];this.state.strokes ||= [];this.state.poses.forEach(p=>p.hidden||=[]);
-  this.drag=null;this.hover=null;this.selectedJoint=-1;this.selection=[];this.undoStack=[];this.redoStack=[];this.selectedPose=this.state.poses.length?0:-1;this.sync();requestAnimationFrame(()=>this.fit());
+  this.moveReferenceImage=null;this.moveView='base';this.moveStep=this.state.move?.source?'target':'source';this.drag=null;this.hover=null;this.selectedJoint=-1;this.selection=[];this.undoStack=[];this.redoStack=[];this.selectedPose=this.state.poses.length?0:-1;this.sync();requestAnimationFrame(()=>this.fit());
+ }
+ async setMoveReference(references){
+  this.moveReferenceCount=references.length;
+  this.moveReferenceImage=null;
+  if(references.length===2){const image=new Image();image.src='/api/assets/'+references[1];await image.decode();this.moveReferenceImage=image;}
+  $('moveFromReference').hidden=!this.moveReferenceImage;
+  $('moveWithin').disabled=references.length!==1;
+  if(!this.moveReferenceImage&&this.state.move?.source_image===2){this.moveView='base';this.notify('画像2がありません。2枚目を添付し直してください。');}
+  this.sync();this.draw();
  }
  snapshot(){return clone(this.state);}
  checkpoint(){this.undoStack.push(this.snapshot());if(this.undoStack.length>70)this.undoStack.shift();this.redoStack=[];}
- changed(){this.sync();this.draw();this.onChange(this.snapshot());}
+ changed(){if(this.moveView==='reference'&&this.state.move?.source_image!==2)this.moveView='base';this.sync();this.draw();this.onChange(this.snapshot());}
  undo(){if(!this.undoStack.length)return;this.redoStack.push(this.snapshot());this.state=this.undoStack.pop();this.selection=[];this.hover=null;this.selectedPose=Math.min(this.selectedPose,this.state.poses.length-1);this.changed();}
  redo(){if(!this.redoStack.length)return;this.undoStack.push(this.snapshot());this.state=this.redoStack.pop();this.selection=[];this.hover=null;this.selectedPose=Math.min(Math.max(this.selectedPose,0),this.state.poses.length-1);this.selectedJoint=-1;this.changed();}
  sync(){
@@ -57,17 +72,18 @@ export class CanvasEditor {
   if(this.selectedPose>=this.state.poses.length)this.selectedPose=this.state.poses.length-1;
   this.selection=this.selection.filter(r=>this.state.poses[r.i]&&!this.state.poses[r.i].hidden?.includes(r.j));$('poseSelection').textContent=this.selection.length?`${this.selection.length} 関節を選択中`:this.selectedPose>=0?`人形 ${this.selectedPose+1}`:'空白からドラッグして範囲選択';
   $('canvasWidth').value=this.state.width;$('canvasHeight').value=this.state.height;$('canvasDimensions').textContent=`${this.state.width} × ${this.state.height} px`;
-  $('undo').disabled=!this.undoStack.length;$('redo').disabled=!this.redoStack.length;
+  $('moveScene').hidden=this.moveView!=='reference';$('moveStatus').textContent=this.state.move?.source?(this.state.move?.target?'赤枠と緑枠を保存中':this.moveView==='reference'?'画像2の赤枠を指定してください':'画像1の緑枠を指定してください'):'赤枠を指定してください';$('undo').disabled=!this.undoStack.length;$('redo').disabled=!this.redoStack.length;
   $('poseSelect').replaceChildren(...(this.state.poses.length?this.state.poses.map((p,i)=>new Option(`人形 ${i+1}`,i)): [new Option('人形なし',-1)]));$('poseSelect').value=this.selectedPose;
   for(const id of ['duplicatePose','flipPose','smallerPose','largerPose','rotatePose','removePose','tiltPose','flipVerticalPose','deletePerson'])$(id).disabled=this.selectedPose<0;
  }
- setTool(tool){this.tool=tool;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('selected',b.dataset.tool===tool));this.canvas.style.cursor=tool==='pan'?'grab':tool==='pose'?'pointer':'crosshair';$('toolHelp').textContent={pen:'画像に描き込みます。元画像は変更しません。',eraser:'選択したレイヤーだけを消します。',mask:'色を塗った範囲を変更します。空のマスクは生成に使いません。',pose:'空白ドラッグで範囲選択。Shiftで追加選択。選択枠で拡縮・回転。右クリックで関節を非表示／復帰。Space / Fで画面移動。',pan:'ドラッグで表示位置を移動。ホイールで拡大縮小。'}[tool];document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('selected',b.dataset.mode===({pen:'draw',eraser:'draw',mask:'mask',pose:'pose'}[tool])));this.draw();}
+ setTool(tool){if(tool!=='move')this.moveView='base';this.tool=tool;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('selected',b.dataset.tool===tool));$('moveControls').hidden=tool!=='move';this.canvas.style.cursor=tool==='pan'?'grab':tool==='pose'?'pointer':'crosshair';$('toolHelp').textContent={pen:'画像に描き込みます。元画像は変更しません。',eraser:'選択したレイヤーだけを消します。',mask:'色を塗った範囲を変更します。空のマスクは生成に使いません。',move:'赤枠で対象を囲み、緑枠を移動・拡大縮小します。',pose:'空白ドラッグで範囲選択。Shiftで追加選択。選択枠で拡縮・回転。右クリックで関節を非表示／復帰。Space / Fで画面移動。',pan:'ドラッグで表示位置を移動。ホイールで拡大縮小。'}[tool];document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('selected',b.dataset.mode===({pen:'draw',eraser:'draw',mask:'mask',pose:'pose',move:'move'}[tool])));this.sync();this.draw();}
  fit(){if(!this.state)return;const r=$('canvasViewport').getBoundingClientRect();this.zoom=Math.min((r.width-36)/this.state.width,(r.height-36)/this.state.height);this.pan={x:(r.width-this.state.width*this.zoom)/2,y:(r.height-this.state.height*this.zoom)/2};this.draw();}
  scale(f,x,y){const r=this.canvas.getBoundingClientRect();x??=r.width/2;y??=r.height/2;const before={x:(x-this.pan.x)/this.zoom,y:(y-this.pan.y)/this.zoom};this.zoom=Math.max(.05,Math.min(8,this.zoom*f));this.pan={x:x-before.x*this.zoom,y:y-before.y*this.zoom};this.draw();}
  point(e){const r=this.canvas.getBoundingClientRect();return {x:(e.clientX-r.left-this.pan.x)/this.zoom,y:(e.clientY-r.top-this.pan.y)/this.zoom};}
  down(e){
   if(!this.state||this.drag)return;if(e.button===2)return;e.preventDefault();this.canvas.focus();this.canvas.setPointerCapture(e.pointerId);const p=this.point(e);
   if(this.space||this.tool==='pan'||e.button===1){this.drag={type:'pan',x:e.clientX,y:e.clientY,pan:{...this.pan}};return;}
+  if(this.tool==='move'){this.moveDown(p,e.pointerId);if(!this.drag&&this.canvas.hasPointerCapture(e.pointerId))this.canvas.releasePointerCapture(e.pointerId);return;}
   if(this.tool==='pose'){
    if(!this.visible.pose){this.notify('ポーズレイヤーを表示してから編集してください。');return;}
    const hit=this.pick(p);
@@ -89,6 +105,7 @@ export class CanvasEditor {
   const p=this.point(e);
   if(!this.drag){if(this.tool==='pose'&&this.visible.pose){this.hover=this.pick(p);const h=this.hover?.handle;this.canvas.style.cursor=this.space?'grab':h==='joint'?'crosshair':h==='move'?'move':h==='rotate'?'grab':h?({n:'ns-resize',s:'ns-resize',e:'ew-resize',w:'ew-resize',nw:'nwse-resize',se:'nwse-resize',ne:'nesw-resize',sw:'nesw-resize'}[h]):'default';this.draw();}return;}
   const d=this.drag;
+  if(d.type==='movebox'){this.moveDrag(p);this.draw();return;}
   if(d.type==='pan')this.pan={x:d.pan.x+e.clientX-d.x,y:d.pan.y+e.clientY-d.y};
   else if(d.type==='stroke')d.stroke.points.push([Math.max(0,Math.min(this.state.width,p.x)),Math.max(0,Math.min(this.state.height,p.y))]);
   else if(d.type==='marquee'){d.end=p;}
@@ -100,8 +117,11 @@ export class CanvasEditor {
   this.draw();
  }
  up(e){if(!this.drag)return;const d=this.drag;this.drag=null;if(this.canvas.hasPointerCapture(e.pointerId))this.canvas.releasePointerCapture(e.pointerId);
+  if(d.type==='movebox'){const box=this.state.move?.[d.key];if(!box||box[2]-box[0]<8||box[3]-box[1]<8){this.state=d.before;this.notify('枠は8px以上で指定してください。');this.draw();return;}if(d.key==='source'){this.moveStep='target';if(!this.state.move.target){const dx=Math.min(24,this.state.width-box[2]);this.state.move.target=[box[0]+dx,box[1],box[2]+dx,box[3]];}if(this.state.move.source_image===2){this.moveView='base';this.notify('画像1の緑枠を移動先へ配置・拡縮してください。');}}this.undoStack.push(d.before);this.redoStack=[];this.changed();return;}
   if(d.type==='marquee'){const {start:a,end:b}=d,refs=[...d.prior];this.state.poses.forEach((p,i)=>p.points.forEach(([x,y],j)=>{if(!p.hidden?.includes(j)&&x>=Math.min(a.x,b.x)&&x<=Math.max(a.x,b.x)&&y>=Math.min(a.y,b.y)&&y<=Math.max(a.y,b.y)&&!refs.some(r=>r.i===i&&r.j===j))refs.push({i,j});}));this.selection=refs;this.selectedPose=refs[0]?.i??-1;this.sync();this.draw();return;}
   if(d.type==='pose'){if(JSON.stringify(d.before)!==JSON.stringify(this.state)){this.undoStack.push(d.before);if(this.undoStack.length>70)this.undoStack.shift();this.redoStack=[];this.changed();}}else if(d.type!=='pan')this.changed();}
+ moveDown(p,pointerId){if(p.x<0||p.y<0||p.x>this.state.width||p.y>this.state.height)return;const sourceImage=this.state.move?.source_image||1;if(this.moveReferenceCount!==sourceImage){this.notify(this.moveReferenceCount===2?'「画像2から画像1へ移す」を選択してください。':'被写体移動では画像を1枚か2枚にしてください。');return;}const before=this.snapshot(),m=this.state.move||={source_image:1};const key=this.moveView==='reference'?'source':this.moveStep==='source'?'source':'target',box=m[key];let mode='draw';if(box){const dist=Math.hypot(p.x-box[2],p.y-box[3])*this.zoom;if(dist<16)mode='resize';else if(p.x>=box[0]&&p.x<=box[2]&&p.y>=box[1]&&p.y<=box[3])mode='translate';}if(mode==='draw')m[key]=[p.x,p.y,p.x,p.y];this.drag={type:'movebox',key,mode,start:p,original:box?[...box]:null,before,pointerId};}
+ moveDrag(p){const d=this.drag,m=this.state.move,w=this.state.width,h=this.state.height,clamp=(v,max)=>Math.max(0,Math.min(max,v));let b;if(d.mode==='translate'){const dx=p.x-d.start.x,dy=p.y-d.start.y,a=d.original;b=[clamp(a[0]+dx,w-(a[2]-a[0])),clamp(a[1]+dy,h-(a[3]-a[1])),0,0];b[2]=b[0]+a[2]-a[0];b[3]=b[1]+a[3]-a[1];}else if(d.mode==='resize'){b=[d.original[0],d.original[1],clamp(p.x,w),clamp(p.y,h)];}else{b=[Math.min(d.start.x,p.x),Math.min(d.start.y,p.y),Math.max(d.start.x,p.x),Math.max(d.start.y,p.y)].map((v,i)=>clamp(v,i%2?w:h));}m[d.key]=b;}
  personRefs(i){const p=this.state?.poses[i];return p?p.points.map((_,j)=>({i,j})).filter(r=>!p.hidden?.includes(r.j)):[];}
  activeRefs(){return this.selection.length?this.selection:this.poseMode==='whole'?this.personRefs(this.selectedPose):[];}
  jointHit(p,hidden=false){let hit=null,best=10/this.zoom;this.state.poses.forEach((person,i)=>person.points.forEach(([x,y],j)=>{if(!hidden&&person.hidden?.includes(j))return;const d=Math.hypot(x-p.x,y-p.y);if(d<best){best=d;hit={i,j,handle:'joint'};}}));return hit;}
@@ -137,10 +157,15 @@ export class CanvasEditor {
   if(this.canvas.width!==Math.round(r.width*dpr)||this.canvas.height!==Math.round(r.height*dpr)){this.canvas.width=Math.round(r.width*dpr);this.canvas.height=Math.round(r.height*dpr);}
   const c=this.ctx;c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,r.width,r.height);c.translate(this.pan.x,this.pan.y);c.scale(this.zoom,this.zoom);
   const {width:w,height:h,x,y}=this.state;c.fillStyle='#303943';c.fillRect(0,0,w,h);c.fillStyle='#3a444f';const tile=20;for(let a=0;a<w;a+=tile)for(let b=0;b<h;b+=tile)if((Math.floor(a/tile)+Math.floor(b/tile))%2)c.fillRect(a,b,Math.min(tile,w-a),Math.min(tile,h-b));
-  c.save();c.beginPath();c.rect(0,0,w,h);c.clip();c.globalAlpha=Number($('baseOpacity').value)/100;c.drawImage(this.image,x,y);c.globalAlpha=1;
+  c.save();c.beginPath();c.rect(0,0,w,h);c.clip();c.globalAlpha=Number($('baseOpacity').value)/100;
+  if(this.moveView==='reference'&&this.moveReferenceImage){const ref=this.moveReferenceImage,scale=Math.min(w/ref.width,h/ref.height),rw=ref.width*scale,rh=ref.height*scale;c.fillStyle='white';c.fillRect(0,0,w,h);c.drawImage(ref,(w-rw)/2,(h-rh)/2,rw,rh);}
+  else c.drawImage(this.image,x,y);
+  c.globalAlpha=1;
+  if(this.moveView!=='reference'){
   if(this.visible.sketch)c.drawImage(this.layerCanvas('sketch'),0,0);
   if(this.visible.mask){c.globalAlpha=.42;c.drawImage(this.layerCanvas('mask'),0,0);c.globalAlpha=1;}
-  if(this.visible.pose)this.state.poses.forEach((p,index)=>{c.lineWidth=Math.max(2.5/this.zoom,Math.min(w,h)/160);EDGES.forEach(([a,b],i)=>{if(p.hidden?.includes(a)||p.hidden?.includes(b))return;c.strokeStyle=COLORS[i];c.beginPath();c.moveTo(...p.points[a]);c.lineTo(...p.points[b]);c.stroke();});p.points.forEach(([x,y],i)=>{if(p.hidden?.includes(i)){c.beginPath();c.strokeStyle='#97a6b088';c.lineWidth=1/this.zoom;c.arc(x,y,4/this.zoom,0,Math.PI*2);c.stroke();return;}const active=this.selection.some(r=>r.i===index&&r.j===i),hover=this.hover?.i===index&&this.hover?.j===i;c.beginPath();c.fillStyle=COLORS[i];c.arc(x,y,(hover||active?7:5)/this.zoom,0,Math.PI*2);c.fill();c.strokeStyle=index===this.selectedPose?'white':'#171b22';c.lineWidth=(hover||active?2:1)/this.zoom;c.stroke();});});c.restore();
+  if(this.visible.pose)this.state.poses.forEach((p,index)=>{c.lineWidth=Math.max(2.5/this.zoom,Math.min(w,h)/160);EDGES.forEach(([a,b],i)=>{if(p.hidden?.includes(a)||p.hidden?.includes(b))return;c.strokeStyle=COLORS[i];c.beginPath();c.moveTo(...p.points[a]);c.lineTo(...p.points[b]);c.stroke();});p.points.forEach(([x,y],i)=>{if(p.hidden?.includes(i)){c.beginPath();c.strokeStyle='#97a6b088';c.lineWidth=1/this.zoom;c.arc(x,y,4/this.zoom,0,Math.PI*2);c.stroke();return;}const active=this.selection.some(r=>r.i===index&&r.j===i),hover=this.hover?.i===index&&this.hover?.j===i;c.beginPath();c.fillStyle=COLORS[i];c.arc(x,y,(hover||active?7:5)/this.zoom,0,Math.PI*2);c.fill();c.strokeStyle=index===this.selectedPose?'white':'#171b22';c.lineWidth=(hover||active?2:1)/this.zoom;c.stroke();});});}
+  c.restore();
   if(this.tool==='pose'&&this.visible.pose&&this.selectedPose>=0){
    const points=this.activeRefs().map(r=>this.state.poses[r.i].points[r.j]);if(points.length>1){
     const b=bounds(points);c.strokeStyle='#6ff7de';c.lineWidth=1/this.zoom;c.setLineDash([5/this.zoom,4/this.zoom]);c.strokeRect(b.left,b.top,b.right-b.left,b.bottom-b.top);c.setLineDash([]);
@@ -151,6 +176,7 @@ export class CanvasEditor {
    }
   }
   if(this.tool==='pose'&&this.hover?.j!==undefined&&this.visible.pose){const pt=this.state.poses[this.hover.i]?.points[this.hover.j];if(pt){c.font=`${12/this.zoom}px sans-serif`;const text=JOINT_NAMES[this.hover.j],tw=c.measureText(text).width;c.fillStyle='#101820e8';c.fillRect(pt[0]+12/this.zoom,pt[1]-25/this.zoom,tw+12/this.zoom,22/this.zoom);c.fillStyle='white';c.fillText(text,pt[0]+18/this.zoom,pt[1]-9/this.zoom);}}
+  if(this.state.move){for(const [key,color] of [['source','#ff5252'],['target','#45e28e']]){if(this.state.move.source_image===2&&(this.moveView==='reference')!==(key==='source'))continue;const box=this.state.move[key];if(!box)continue;c.strokeStyle=color;c.lineWidth=3/this.zoom;c.strokeRect(box[0],box[1],box[2]-box[0],box[3]-box[1]);c.fillStyle=color;c.fillRect(box[2]-8/this.zoom,box[3]-8/this.zoom,16/this.zoom,16/this.zoom);c.font=`${16/this.zoom}px sans-serif`;c.fillText(key==='source'?'移動元':'移動先',box[0],Math.max(17/this.zoom,box[1]-7/this.zoom));}}
   if(this.drag?.type==='marquee'){const a=this.drag.start,b=this.drag.end;c.fillStyle='#51d9c622';c.strokeStyle='#51d9c6';c.lineWidth=1/this.zoom;c.fillRect(a.x,a.y,b.x-a.x,b.y-a.y);c.strokeRect(a.x,a.y,b.x-a.x,b.y-a.y);}
   c.strokeStyle='#7c929f';c.lineWidth=1/this.zoom;c.strokeRect(0,0,w,h);$('zoomLabel').textContent=Math.round(this.zoom*100)+'%';
  }

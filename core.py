@@ -500,6 +500,35 @@ class Application:
             if g.get('editor'):
                 editor=g['editor'];canvas,sketch,mask,pose=render_editor(base,editor)
                 images[0]=Image.alpha_composite(canvas,sketch)
+                if editor.get('move'):
+                    source_image=editor['move'].get('source_image',1)
+                    if source_image not in (1,2) or len(images)!=source_image:
+                        raise AppError('Move','画像内移動は1枚、画像2からの移動は画像1と画像2の2枚を添付してください。')
+                    if editor.get('poses') or mask.getbbox() or canvas.size!=base.size or sketch.getbbox():
+                        raise AppError('Move','Mask・Sketch・Pose・Canvas拡張との同時使用は未対応です。')
+                    boxes={}
+                    for key in ('source','target'):
+                        box=editor['move'].get(key)
+                        if not isinstance(box,list) or len(box)!=4 or any(not isinstance(v,(int,float)) or not math.isfinite(v) for v in box):raise AppError('Move',f'{key}の枠を指定してください。')
+                        x1,y1,x2,y2=map(float,box)
+                        if not (0<=x1<x2<=canvas.width and 0<=y1<y2<=canvas.height and x2-x1>=8 and y2-y1>=8):raise AppError('Move',f'{key}の範囲が画像からはみ出しています。')
+                        boxes[key]=(round(x1),round(y1),round(x2),round(y2))
+                    if source_image==1 and boxes['source']==boxes['target']:raise AppError('Move','緑枠を移動先へ動かしてください。')
+                    unmarked=folder/'move_base.png';images[0].save(unmarked);files['move_base']=str(unmarked.relative_to(self.store.root))
+                    marked=images[0].copy().convert('RGB');d=ImageDraw.Draw(marked);line=max(4,round(min(canvas.size)/150))
+                    d.rectangle(boxes['target'],outline=(0,255,0),width=line+2)
+                    if source_image==1:
+                        d.rectangle(boxes['source'],outline=(255,0,0),width=line)
+                        params['prompt']='Move the object inside the red bounding box to the position and size indicated by the green bounding box. Remove it from its original location, fill the background naturally, and remove both boxes. Preserve other objects, background and image style.\n'+params['prompt']
+                    else:
+                        original_source=folder/'move_source_base.png';images[1].save(original_source);files['move_source_base']=str(original_source.relative_to(self.store.root))
+                        fit=ImageOps.contain(images[1],canvas.size,Image.Resampling.LANCZOS)
+                        source_canvas=Image.new('RGB',canvas.size,'white')
+                        source_canvas.paste(fit.convert('RGB'),((canvas.width-fit.width)//2,(canvas.height-fit.height)//2))
+                        ImageDraw.Draw(source_canvas).rectangle(boxes['source'],outline=(255,0,0),width=line)
+                        images[1]=source_canvas
+                        params['prompt']='Place the object inside the red bounding box in <image2> into the green bounding box in <image1>, at the indicated position and size. Adapt its rendering, lighting, colors, texture, and linework to match the visual style of image 1. Integrate it into the scene instead of pasting a cutout. Preserve the other objects and background of image 1. Remove both colored boxes.\n'+params['prompt']
+                    images[0]=marked;features.append('move')
                 if sketch.getbbox(): features.append('sketch')
                 if canvas.size!=base.size: features.append('expand')
                 if mask.getbbox():
@@ -541,7 +570,8 @@ class Application:
             params['width'],params['height']=images[0].size
         else:params['width'],params['height']=dimensions(params['aspect'],params['resolution'])
         if max(params['width'],params['height'])>4096 or params['width']*params['height']>8_388_608:raise AppError('Canvas','生成サイズが大きすぎます。Canvasを調整してください。')
-        if 'mask' in features: intent='inpaint'
+        if 'move' in features:intent='move'
+        elif 'mask' in features: intent='inpaint'
         elif 'pose' in features:intent='pose'
         elif 'expand' in features:intent='outpaint'
         elif len(images)>1:intent='multi_reference'

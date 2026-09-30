@@ -1,0 +1,9 @@
+{
+  "extends": "qwen21_edit",
+  "id": "qwen21_move",
+  "label": "Qwen 2.1 · 被写体移動",
+  "version": 1,
+  "intents": ["move"],
+  "capabilities": ["references", "move"],
+  "max_references": 2
+}
